@@ -1,26 +1,31 @@
-// import { db } from "@vercel/postgres";
+import { db } from "@vercel/postgres";
+import { NextResponse } from "next/server";
 
-// const client = await db.connect();
+async function listInvoices() {
+  const client = await db.connect();
+  try {
+    const data = await client.sql`
+      SELECT invoices.amount, customers.name
+      FROM invoices
+      JOIN customers ON invoices.customer_id = customers.id
+      WHERE invoices.amount = 666;
+    `;
 
-// async function listInvoices() {
-// 	const data = await client.sql`
-//     SELECT invoices.amount, customers.name
-//     FROM invoices
-//     JOIN customers ON invoices.customer_id = customers.id
-//     WHERE invoices.amount = 666;
-//   `;
-
-// 	return data.rows;
-// }
+    return data.rows;
+  } catch (error) {
+    console.error("Error fetching invoices:", error);
+    throw new Error("Failed to fetch invoices");
+  } finally {
+    client.release(); // Always release the client after usage
+  }
+}
 
 export async function GET() {
-  return Response.json({
-    message:
-      'Uncomment this file and remove this line. You can delete this file when you are finished.',
-  });
-  // try {
-  // 	return Response.json(await listInvoices());
-  // } catch (error) {
-  // 	return Response.json({ error }, { status: 500 });
-  // }
+  try {
+    const invoices = await listInvoices();
+    return NextResponse.json({ invoices });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
+  }
 }
